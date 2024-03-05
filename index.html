@@ -176,7 +176,7 @@
                         <button class="toggle-btn" onclick="toggleStatus(${index})">
                             ${transaction.completed ? 'Pending' : 'Completed'}
                         </button>
-                        <button class="delete-btn" onclick="deleteTransaction(${index})">Delete</button>
+                        <button class="delete-btn" onclick="confirmDelete(${index})">Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -221,6 +221,13 @@
             renderTransactions();
         }
 
+        // Function to confirm deletion of a transaction
+        function confirmDelete(index) {
+            if (confirm("Are you sure you want to delete this transaction?")) {
+                deleteTransaction(index);
+            }
+        }
+
         // Function to toggle the status of a transaction
         function toggleStatus(index) {
             transactions[index].completed = !transactions[index].completed;
@@ -230,9 +237,11 @@
 
         // Function to clear all transactions
         function clearAllTransactions() {
-            transactions = [];
-            localStorage.removeItem('transactions');
-            renderTransactions();
+            if (confirm("Are you sure you want to clear all transactions?")) {
+                transactions = [];
+                localStorage.removeItem('transactions');
+                renderTransactions();
+            }
         }
 
         // Render transactions when the page loads
