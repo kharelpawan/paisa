@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Transactions</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    form {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    form label {
+        flex-basis: 48%;
+        margin-bottom: 10px;
+    }
+
+    form input[type="number"],
+    form input[type="text"] {
+        width: calc(100% - 10px);
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    form button[type="submit"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    .pending {
+        color: red;
+    }
+
+    .completed {
+        color: green;
+    }
+
+    .delete-btn {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .delete-btn:hover {
+        background-color: #d32f2f;
+    }
+
+    .toggle-btn {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .toggle-btn:hover {
+        background-color: #0b7dda;
+    }
+
+    .clear-btn {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+        padding: 10px 20px;
+    }
+
+    .clear-btn:hover {
+        background-color: #d32f2f;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Personal Transactions</h1>
+        <form id="transactionForm">
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" name="amount" step="0.01" required>
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description" required>
+            <button type="submit">Add Transaction</button>
+        </form>
+        <table id="transactionTable">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="transactionBody">
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4">Total Available Money:</td>
+                    <td id="totalMoney"></td>
+                </tr>
+            </tfoot>
+        </table>
+        <button class="clear-btn" onclick="clearAllTransactions()">Clear All Transactions</button>
+    </div>
+
+    <script>
+        // Initialize transactions from localStorage or an empty array
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        // Function to render transactions
+        function renderTransactions() {
+            const tbody = document.getElementById('transactionBody');
+            tbody.innerHTML = '';
+
+            let totalMoney = 0;
+
+            transactions.forEach((transaction, index) => {
+                const row = document.createElement('tr');
+                const dateTime = new Date(transaction.timestamp).toLocaleString();
+                const amountWithSign = transaction.type === 'income' ? `+${transaction.amount}` : `-${transaction.amount}`;
+                const statusClass = transaction.completed ? 'completed' : 'pending';
+                
+                row.innerHTML = `
+                    <td>${dateTime}</td>
+                    <td>${amountWithSign}</td>
+                    <td>${transaction.description}</td>
+                    <td class="${statusClass}">${transaction.completed ? 'Completed' : 'Pending'}</td>
+                    <td>
+                        <button class="toggle-btn" onclick="toggleStatus(${index})">
+                            ${transaction.completed ? 'Pending' : 'Completed'}
+                        </button>
+                        <button class="delete-btn" onclick="deleteTransaction(${index})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                totalMoney += (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+            });
+
+            document.getElementById('totalMoney').textContent = totalMoney.toFixed(2);
+        }
+
+        // Function to add a transaction
+        function addTransaction(event) {
+            event.preventDefault();
+
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+
+            if (isNaN(amount)) {
+                alert('Please enter a valid amount.');
+                return;
+            }
+
+            const transaction = {
+                timestamp: Date.now(),
+                amount: Math.abs(amount),
+                description: description,
+                type: amount >= 0 ? 'income' : 'expense',
+                completed: false
+            };
+
+            transactions.push(transaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+
+            renderTransactions();
+            document.getElementById('transactionForm').reset();
+        }
+
+        // Function to delete a transaction
+        function deleteTransaction(index) {
+            transactions.splice(index, 1);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            renderTransactions();
+        }
+
+        // Function to toggle the status of a transaction
+        function toggleStatus(index) {
+            transactions[index].completed = !transactions[index].completed;
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            renderTransactions();
+        }
+
+        // Function to clear all transactions
+        function clearAllTransactions() {
+            transactions = [];
+            localStorage.removeItem('transactions');
+            renderTransactions();
+        }
+
+        // Render transactions when the page loads
+        window.onload = function() {
+            renderTransactions();
+        };
+
+        // Add transaction form submit event listener
+        document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+    </script>
+</body>
+</html>
